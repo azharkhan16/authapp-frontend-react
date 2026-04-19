@@ -2,11 +2,13 @@ import { Link, useNavigate} from "react-router-dom";
 import { assets } from "../assets/assets.js";
 import { useContext, useRef, useState } from "react";
 import { AppContext } from "../context/AppContext";
+import { toast } from "react-toastify";
+import axios from "axios";
 
 const EmailVerify = () => {
   const inputRef = useRef([]);
   const [loading, setLoading] = useState(false);
-  const {getUserData, isLoggedIn, userData} = useContext(AppContext);
+  const {getUserData, isLoggedIn, userData, backendURL} = useContext(AppContext);
   const navigate = useNavigate();
 
   const handleChange = (e, index) => {
@@ -33,6 +35,30 @@ const EmailVerify = () => {
       });
       const next = paste.length < 6 ? paste.length : 5;
       inputRef.current[next].focus();    
+  }
+
+  const handleVerify = async () => {
+    const otp = inputRef.current.map(input => input.value).join("");
+    if (otp.length !==6) {
+        toast.error("Please enter all 6 digits of the OTP");
+        return;
+    }
+
+    setLoading(true);
+    try {
+        const response = await axios.post(backendURL+"/verify-otp", {otp});
+        if (response.status === 200) {
+            toast.success("OTP verified successfully");
+            getUserData();
+            navigate("/");
+        } else {
+            toast.error("Invalid OTP");
+        }
+    } catch(error) {
+        toast.error("Failed to verify OTP. please try again.")
+    } finally {
+        setLoading(false);
+    }
   }
 
   return (
@@ -65,7 +91,7 @@ const EmailVerify = () => {
                        ))}
                    </div>
 
-                   <button className="btn btn-primary w-100 fw-semibold" disabled={loading}>
+                   <button className="btn btn-primary w-100 fw-semibold" disabled={loading} onClick={handleVerify}>
                        {loading ? "Verifying..." : "Verify email"}
                    </button>
               </div>
